@@ -5,21 +5,15 @@ class TimeDeltaPL:
 
     def __init__(self):
         self.author = 'Nicole Broyak'
-        self.create_months_lengths()
-        self.create_translation_dependency_tuple()
         self.difference_boolean_control = True
 
-    def create_translation_dependency_tuple(self):
+    def translation_dependency_tuple(self):
         """if part of date is here, the numeral will be written adequately"""
 
-        self.translation_dependencies = (2, 3, 4, 22, 23, 24, 32, 33, 34,
-        42, 43, 44, 52, 53, 54)
+        return (2, 3, 4, 22, 23, 24, 32, 33, 34, 42, 43, 44, 52, 53, 54)
 
-    def create_months_lengths(self):
-        self.months_lengths = {
-            '1': 31, '2': 28, '3': 31, '4': 30, '5': 31, '6': 30
-            ,'7': 31, '8': 31, '9': 30, '10': 31, '11': 30, '12': 31
-        }
+    def months_lengths(self):
+        return (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
     def make_asterisks(callback, *args):
         """Simple decorator to make asterisks above and below methods"""
@@ -34,11 +28,10 @@ class TimeDeltaPL:
     def convert_date_to_pl(self, date_1, date_2=str(datetime.now())):
         """Main method composed from every sub-methods"""
 
-        self.create_dates_numeric_lists(date_1, date_2)
         print(self.date_numeric_list)
-        self.create_date_differences_list(self.date_numeric_list)
+        self.create_date_differences_list(date_1, date_2)
         self.process_date_differences_list()
-        self.translate_date_difference()
+        print(self.translate_date_difference())
         self.clear_attributes()
 
     def clear_attributes(self):
@@ -63,18 +56,16 @@ class TimeDeltaPL:
     def create_dates_numeric_lists(self, date_1, date_2):
         """Creates list of splitted lists"""
 
-        self.date_numeric_list = [
-            self.convert_attr_to_date_list(date_1),
-            self.convert_attr_to_date_list(date_2)
-        ]
-    def create_date_differences_list(self, list):
-        self.differences = []
-        self.differences.append(self.create_difference_template(list, 0))
-        self.differences.append(self.create_difference_template(list, 1))
-        self.differences.append(self.create_difference_template(list, 2))
-        self.differences.append(self.create_difference_template(list, 3))
-        self.differences.append(self.create_difference_template(list, 4))
+        return [self.convert_attr_to_date_list(date_1),
+                self.convert_attr_to_date_list(date_2)]
 
+    def create_difference_template(self, list, index):
+        """Method to create raw differences used in other methods"""
+        return list[0][index] - list[1][index]
+
+    def create_date_differences_list(self, date_1, date_2):
+        list = self.create_dates_numeric_lists(date_1, date_2)
+        return [self.create_difference_template(list, i) for i in range(5)]
 
     def boolean_checker(self, diffs):
         """Temporary way to fix bugs related to differences"""
@@ -103,7 +94,7 @@ class TimeDeltaPL:
 
         convert_values = {
             '0': 12, 
-            '1': self.months_lengths[str(self.date_numeric_list[0][1])],
+            '1': self.months_lengths()[self.date_numeric_list[0][1] - 1],
             '2': 24,
             '3': 60}
         if ((diffs[index] > 0 and diffs[index+1] < 0)
@@ -125,50 +116,38 @@ class TimeDeltaPL:
         else:
             return diffs[index]
 
-    def translate_date_difference(self):
-        """Main method comprised of sub-methods needed to translate date diff"""
-
-        self.translation = ''
-        self.translate_difference_template(0, 'rok', 'lat', 'lata')
-        self.translate_difference_template(1, 'miesiąc', 'miesięcy', 'miesiące')
-        self.translate_difference_template(2, 'dzień', 'dni')
-        self.translate_difference_template(3, 'godzinę', 'godzin', 'godziny')
-        self.translate_difference_template(4, 'minutę', 'minut', 'minuty')
-        self.insert_time_of_occurence_sentences()
-        print(self.translation)
-
-    def insert_time_of_occurence_sentences(self):
-        if self.past_present_or_future_checker() == -1:
-            self.translation = 'Wydarzenie odbyło się ' + self.translation
-            self.translation += 'temu'
-        else:
-            self.translation = 'Wydarzenie odbędzie się za ' + self.translation
-            if self.translation == 'Wydarzenie odbędzie się za ':
-                self.translation = 'Wydarzenie odbywa się teraz'
-        
     def past_present_or_future_checker(self):
-        for i in self.differences:
-            if i == 0: continue
-            else: return -1 if i < 0 else 1
+        for i in self.differences: return -1 if i < 0 else 1
+
+    def assemble_translation(self, *args):
+        str_of_args = ''
+        for arg in args: str_of_args += arg if arg else ''
+        if self.past_present_or_future_checker() == -1:
+            return f'Wydarzenie odbyło się {str_of_args[:-2]} + temu.'
+        elif self.past_present_or_future_checker() == 1:
+            return f'Wydarzenie odbędzie się za: {str_of_args[:-2]}.'
+        return 'Wydarzenie odbywa się teraz.'
 
     def translate_difference_template(self, index, ending_1, ending_2, ending_3=''):
         """Method used to create singular or plural Polish numeral """
-        if abs(self.differences[index]) == 1:
-            self.translation += f'{abs(self.differences[index])} {ending_1} '
-        elif (ending_3
-        and abs(self.differences[index]) in self.translation_dependencies):
-            self.translation += f'{abs(self.differences[index])} {ending_3} '
-        elif self.differences[index] == 0:
-            return
-        else: self.translation += f'{abs(self.differences[index])} {ending_2} '
-        
+        abs_value = abs(self.differences[index])
+        if abs_value == 1:
+            return f'{abs_value} {ending_1}, '
+        elif (ending_3 and abs_value in self.translation_dependency_tuple()):
+            return f'{abs_value} {ending_3}, '
+        elif self.differences[index] != 0:
+            return f'{abs_value} {ending_2}, '
 
-    def create_difference_template(self, list, index):
-        """Method to create raw differences used in other methods"""
-        if list[0][index] != list[1][index]:
-            return list[0][index] - list[1][index]
-        else:
-            return 0
+    def translate_date_difference(self):
+        """Main method comprised of sub-methods needed to translate date diff"""
+        
+        return self.assemble_translation(
+        self.translate_difference_template(0, 'rok', 'lat', 'lata'),
+        self.translate_difference_template(1, 'miesiąc', 'miesięcy', 'miesiące'),
+        self.translate_difference_template(2, 'dzień', 'dni'),
+        self.translate_difference_template(3, 'godzinę', 'godzin', 'godziny'),
+        self.translate_difference_template(4, 'minutę', 'minut', 'minuty')
+        )
 
 #example tests
 z = TimeDeltaPL()
